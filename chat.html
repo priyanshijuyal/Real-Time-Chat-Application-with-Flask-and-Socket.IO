@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Chat</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #333;
+            background: url('https://images.unsplash.com/photo-1718551260047-e5b4a92e46b6?q=80&w=1887&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        #chat-container {
+            width: 90%;
+            max-width: 600px;
+            height: 80%;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.9); /* Slightly transparent background */
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        #chat-box {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #007BFF rgba(255, 255, 255, 0.8);
+        }
+
+        #chat-box::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #chat-box::-webkit-scrollbar-thumb {
+            background: #007BFF;
+            border-radius: 5px;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 70%;
+            word-wrap: break-word;
+            font-size: 14px;
+        }
+
+        .message.sent {
+            align-self: flex-end;
+            background-color: #007BFF;
+            color: white;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .message.received {
+            align-self: flex-start;
+            background-color: #f1f1f1;
+            color: black;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        #input-container {
+            display: flex;
+            padding: 15px;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            border-top: 2px solid #ddd;
+            border-radius: 0 0 15px 15px;
+        }
+
+        #message-input {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #send-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 20px;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        #send-button:hover {
+            background-color: #0056b3;
+            box-shadow: 0 6px 15px rgba(0, 123, 255, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="chat-box"></div>
+        <div id="input-container">
+            <input id="message-input" type="text" placeholder="Type your message...">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        const chatBox = document.getElementById("chat-box");
+        const messageInput = document.getElementById("message-input");
+        const sendButton = document.getElementById("send-button");
+
+        function getUsername() {
+            let username = sessionStorage.getItem("username");
+            if (!username) {
+                username = "User" + Math.floor(Math.random() * 1000);
+                sessionStorage.setItem("username", username);
+            }
+            return username;
+        }
+
+        const username = getUsername();
+
+        function addMessage(message, type = "received") {
+            const messageElement = document.createElement("div");
+            messageElement.textContent = message;
+            messageElement.classList.add("message", type);
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        socket.on("message", (data) => {
+            addMessage(`${data.user}: ${data.message}`, "received");
+        });
+
+        sendButton.addEventListener("click", () => {
+            const message = messageInput.value.trim();
+            if (message) {
+                addMessage(`You: ${message}`, "sent");
+                socket.emit("message", { user: username, message });
+                messageInput.value = "";
+            }
+        });
+
+        messageInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                sendButton.click();
+            }
+        });
+    </script>
+</body>
+</html>
